@@ -2,6 +2,7 @@
 
 use alloy_consensus::{
     Eip658Value, Receipt, ReceiptWithBloom, Transaction as TxTrait, TxEnvelope, TxType, Typed2718,
+    Block,
 };
 use alloy_network::{
     AnyHeader, AnyReceiptEnvelope, AnyRpcBlock, AnyRpcTransaction, AnyTransactionReceipt,
@@ -9,10 +10,11 @@ use alloy_network::{
 };
 use alloy_primitives::{hex, Address, Bloom, Bytes, FixedBytes, Uint, I256, U256, U64, U8};
 use alloy_rpc_types::{
-    AccessListItem, Block, BlockTransactions, Header, Log, Transaction, TransactionReceipt,
+    AccessListItem, BlockTransactions, Header, Log, Transaction, TransactionReceipt,
 };
 use alloy_serde::{OtherFields, WithOtherFields};
 use serde::Deserialize;
+use alloy_eips::eip7702::SignedAuthorization;
 
 /// length of the name column for pretty formatting `{:>20}{value}`
 const NAME_COLUMN_LEN: usize = 20usize;
@@ -107,6 +109,19 @@ impl UIfmt for I256 {
 impl UIfmt for Address {
     fn pretty(&self) -> String {
         self.to_string()
+    }
+}
+
+impl UIfmt for SignedAuthorization {
+    fn pretty(&self) -> String {
+        let authority = self.recover_authority().unwrap_or_default();
+        format!(
+            "address: {}, nonce: {}, chainId: {}, signer: {}",
+            self.address().pretty(),
+            self.nonce().pretty(),
+            self.chain_id().pretty(),
+            authority.pretty(),
+        )
     }
 }
 
@@ -442,9 +457,8 @@ yParity              {}",
                     .unwrap_or_default()
                     .pretty(),
                 self.authorization_list()
-                    .as_ref()
-                    .map(|l| serde_json::to_string(&l).unwrap())
-                    .unwrap_or_default(),
+                    .unwrap_or_default()
+                    .pretty(),
                 self.chain_id().pretty(),
                 self.gas_limit().pretty(),
                 self.tx_hash().pretty(),
@@ -674,9 +688,8 @@ yParity              {}",
                     .unwrap_or_default()
                     .pretty(),
                 self.authorization_list()
-                    .as_ref()
-                    .map(|l| serde_json::to_string(&l).unwrap())
-                    .unwrap_or_default(),
+                    .unwrap_or_default()
+                    .pretty(),
                 self.block_hash.pretty(),
                 self.block_number.pretty(),
                 self.chain_id().pretty(),
